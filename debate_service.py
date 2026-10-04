@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+
 def get_debate_response(history: list, user_message: str, topic: str, ai_stance: str) -> str:
     system_prompt = f"""You are debating the topic: "{topic}".
 Your stance: {ai_stance}.
@@ -28,19 +29,27 @@ Rules:
 
 def evaluate_debate(full_conversation: list, topic: str, user_stance: str,
                      rebuttal_data: dict, evidence_data: dict, vocab_diversity: float, length_trend: dict) -> str:
-    conversation_text = "\n".join([f"{m['role']}: {m['content']}" for m in full_conversation])
+    # Label turns by role in the debate, not by chat API role names
+    conversation_text = "\n".join([
+        f"{'STUDENT' if m['role'] == 'user' else 'OPPONENT (AI)'}: {m['content']}"
+        for m in full_conversation
+    ])
 
-    prompt = f"""Evaluate this debate. Topic: {topic}. User's stance: {user_stance}.
+    prompt = f"""You are evaluating a debate practice session for a STUDENT who is learning debate skills.
 
-CONVERSATION:
+Topic: {topic}. Student's stance: {user_stance}.
+
+CONVERSATION (STUDENT is the person being evaluated. OPPONENT (AI) is a practice opponent, shown only for context. Do NOT evaluate, praise, or critique the OPPONENT's arguments):
 {conversation_text}
 
-COMPUTED METRICS (already calculated, use these, don't recalculate):
-- Average rebuttal relevance: {rebuttal_data['average_relevance']} (0 to 1 scale, how closely user replies engaged with the AI's points)
+COMPUTED METRICS about the STUDENT's turns only (already calculated, use these, don't recalculate):
+- Average rebuttal relevance: {rebuttal_data['average_relevance']} (0 to 1 scale, how closely the student's replies engaged with the opponent's points)
 - Per-turn relevance scores: {rebuttal_data['per_turn_scores']}
-- Evidence/reasoning markers used: {evidence_data['total_evidence_markers']} ({evidence_data['breakdown']})
-- Vocabulary diversity (TTR): {vocab_diversity} (closer to 1 = more varied word choice)
-- Response length trend: {length_trend['trend']} (word counts per turn: {length_trend['word_counts_per_turn']})
+- Evidence/reasoning markers used by the student: {evidence_data['total_evidence_markers']} ({evidence_data['breakdown']})
+- Student's vocabulary diversity (TTR): {vocab_diversity} (closer to 1 = more varied word choice)
+- Student's response length trend: {length_trend['trend']} (word counts per turn: {length_trend['word_counts_per_turn']})
+
+Score, and write strengths/improvements/summary, about the STUDENT ONLY. Never mention or assess the OPPONENT's argument quality.
 
 Return ONLY this JSON format, nothing else:
 {{
@@ -54,7 +63,7 @@ Return ONLY this JSON format, nothing else:
   }},
   "strengths": ["point1", "point2"],
   "improvements": ["point1", "point2"],
-  "summary": "2-3 sentence feedback"
+  "summary": "2-3 sentence feedback about the student's performance"
 }}"""
 
     response = client.chat.completions.create(

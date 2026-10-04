@@ -25,15 +25,23 @@ def calculate_wpm(transcript: str, duration_seconds: float) -> float:
 
 def detect_pauses(segments: list, pause_threshold: float = 1.0) -> dict:
     pauses = []
+    pause_list = []
     for i in range(len(segments) - 1):
         gap = segments[i + 1]["start"] - segments[i]["end"]
         if gap >= pause_threshold:
-            pauses.append(round(gap, 2))
+            gap = round(gap, 2)
+            pauses.append(gap)
+            pause_list.append({
+                "start": round(segments[i]["end"], 2),
+                "end": round(segments[i + 1]["start"], 2),
+                "duration": gap
+            })
 
     return {
         "pause_count": len(pauses),
         "total_pause_time": round(sum(pauses), 2),
-        "longest_pause": round(max(pauses), 2) if pauses else 0
+        "longest_pause": round(max(pauses), 2) if pauses else 0,
+        "pauses": pause_list
     }
 
 def calculate_silence_ratio(segments: list, total_duration: float) -> float:
@@ -58,3 +66,19 @@ def calculate_vocabulary_diversity(transcript: str) -> float:
     ttr = len(unique_words) / len(words)
 
     return round(ttr, 3)
+
+def calculate_pace_timeline(segments: list) -> list:
+    timeline = []
+    for seg in segments:
+        seg_duration = seg["end"] - seg["start"]
+        text = seg.get("text", "")
+        words = len(text.split())
+        # skip tiny segments, their WPM is not reliable
+        if seg_duration < 2 or words < 4:
+            continue
+        timeline.append({
+            "start": round(seg["start"], 2),
+            "end": round(seg["end"], 2),
+            "wpm": round(words / seg_duration * 60, 1)
+        })
+    return timeline
