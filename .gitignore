@@ -1,0 +1,27 @@
+# Python / backend
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+
+# Node / frontend
+node_modules/
+dist/
+build/
+
+# Uploaded and test audio
+uploads/
+temp_audio/
+test_audio/
+*.wav
+*.mp3
+*.webm
+
+# Model cache and misc
+.cache/
+.vscode/
+.idea/
+.DS_Store
