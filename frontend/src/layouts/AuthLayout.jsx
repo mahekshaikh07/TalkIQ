@@ -1,5 +1,11 @@
 import { Outlet, Link } from "react-router-dom";
-import { AudioWaveform, Mic } from "lucide-react";
+import { AudioWaveform, Mic, Users, LineChart } from "lucide-react";
+
+const HIGHLIGHTS = [
+  { icon: Mic, title: "Speaking practice", desc: "Record a speech and see your pace, pauses and filler words." },
+  { icon: Users, title: "Debate practice", desc: "Debate an AI opponent and get your arguments scored." },
+  { icon: LineChart, title: "Track your progress", desc: "Every session is saved, so you can see how you improve." },
+];
 
 export default function AuthLayout() {
   return (
@@ -23,54 +29,25 @@ export default function AuthLayout() {
             </Link>
 
             <h1 className="font-display mt-10 text-4xl font-bold leading-tight text-text">
-              Elevate Your <br />
-              <span className="text-text/40">Voice.</span>
+              Speak with more confidence.
             </h1>
             <p className="mt-4 max-w-xs text-sm text-text/60">
-              Join thousands of professionals and debaters practicing in a
-              high-clarity, focused environment.
+              Practice speeches and debates with an AI coach, then see exactly what to work on next.
             </p>
           </div>
 
-          {/* Floating stat cards */}
-          <div className="relative my-10 h-40">
-            <div className="glass absolute left-4 top-0 w-56 rounded-2xl p-4 shadow-lg">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/25 text-primary">
-                  <Mic size={16} />
+          <div className="mt-10 space-y-3">
+            {HIGHLIGHTS.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="glass flex items-start gap-3 rounded-2xl p-4 shadow-sm">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">
+                  <Icon size={16} />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-text">Live Session</p>
-                  <p className="truncate text-xs text-text/50">Analyzing your pace...</p>
+                <div>
+                  <p className="text-sm font-semibold text-text">{title}</p>
+                  <p className="mt-0.5 text-xs text-text/60">{desc}</p>
                 </div>
               </div>
-            </div>
-
-            <div className="glass absolute left-4 top-20 w-56 rounded-2xl p-4 shadow-lg">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-text/50">Clarity Score</span>
-                <span className="text-xs font-semibold text-text">94% Clarity</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                <div className="h-full w-4/5 rounded-full bg-text" />
-              </div>
-            </div>
-          </div>
-
-          {/* Testimonial */}
-          <div className="glass rounded-2xl p-4 shadow-lg">
-            <p className="text-sm italic text-text/70">
-              "TalkIQ completely transformed how I prepare for high-stakes
-              presentations. The serene environment keeps my anxiety low
-              while providing actionable feedback."
-            </p>
-            <div className="mt-3 flex items-center gap-3">
-              <span className="h-9 w-9 rounded-full bg-primary/30" />
-              <div>
-                <p className="text-sm font-semibold text-text">Sarah J.</p>
-                <p className="text-xs text-text/50">Debate Champion</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 

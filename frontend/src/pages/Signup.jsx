@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Lock } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
-import { Field, SocialButton } from "../components/Auth/AuthFormElements";
+import { Field, PasswordStrengthMeter } from "../components/Auth/AuthFormElements";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -67,7 +67,8 @@ export default function Signup() {
           type="text"
           name="name"
           label="Full Name"
-          placeholder="Jane Doe"
+          placeholder="Your full name"
+          autoComplete="name"
           value={formData.name}
           onChange={handleChange}
         />
@@ -77,6 +78,7 @@ export default function Signup() {
           name="email"
           label="Email"
           placeholder="you@example.com"
+          autoComplete="email"
           value={formData.email}
           onChange={handleChange}
         />
@@ -86,9 +88,11 @@ export default function Signup() {
           name="password"
           label="Password"
           placeholder="At least 6 characters"
+          autoComplete="new-password"
           value={formData.password}
           onChange={handleChange}
         />
+        <PasswordStrengthMeter password={formData.password} />
 
         {error && (
           <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
@@ -104,17 +108,6 @@ export default function Signup() {
           {loading ? "Creating account..." : "Create Account"}
         </button>
       </form>
-
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-[#E2E8F0]" />
-        <span className="text-xs text-[#94A3B8]">or sign up with</span>
-        <div className="h-px flex-1 bg-[#E2E8F0]" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <SocialButton provider="google" />
-        <SocialButton provider="github" />
-      </div>
 
       <p className="mt-8 text-center text-sm text-[#64748B]">
         Already have an account?{" "}

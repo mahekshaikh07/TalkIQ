@@ -47,7 +47,7 @@ export default function Dashboard() {
     load();
   }, []);
 
-  const name = user && user.name ? user.name : "there";
+  const name = user && user.name ? user.name.trim().split(/\s+/)[0] : "there";
   const all = tagSessions(speech, debates);
 
   return (
@@ -150,16 +150,33 @@ export default function Dashboard() {
             streak={calculateStreak(all)}
           />
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ScoreOverTimeChart speech={speech} debates={debates} />
-            <SkillProfileRadar speech={speech} debates={debates} />
-            <FillerTrendChart speech={speech} />
-            <WpmTrendChart speech={speech} />
-            <PracticeCalendar sessions={all} />
-            <RelevanceTrendChart debates={debates} />
-          </div>
-
           <FocusThisWeek speech={speech} debates={debates} />
+
+          {all.length >= 2 ? (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <ScoreOverTimeChart speech={speech} debates={debates} />
+              <SkillProfileRadar speech={speech} debates={debates} />
+              <FillerTrendChart speech={speech} />
+              <WpmTrendChart speech={speech} />
+              <PracticeCalendar sessions={all} />
+              <RelevanceTrendChart debates={debates} />
+            </div>
+          ) : (
+            <div className="glass flex flex-col items-center gap-3 rounded-2xl border border-white/45 bg-white/70 p-10 text-center shadow-sm">
+              <p className="font-display text-base font-semibold text-[#334155]">
+                Your trend charts appear after your second session
+              </p>
+              <p className="max-w-sm text-sm text-[#94A3B8]">
+                One more session and you can see how your scores, pace and filler words change.
+              </p>
+              <button
+                onClick={function () { navigate("/speaking/setup"); }}
+                className="mt-1 rounded-xl bg-[#334155] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#1E293B]"
+              >
+                Practice again
+              </button>
+            </div>
+          )}
 
           <RecentSessionsTable sessions={all} />
         </div>

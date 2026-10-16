@@ -1,21 +1,30 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Pencil, Mic, Check, X, ArrowRight } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Pencil, Mic, Check, X, ArrowRight, Shuffle } from "lucide-react";
 
 const TOPIC_SUGGESTIONS = ["Quarterly Review", "Elevator Pitch", "Impromptu Speech"];
 const DURATIONS = [1, 3, 5];
-const FEEDBACK_LEVELS = [
-  { value: "gentle", label: "Gentle (Encouraging)" },
-  { value: "balanced", label: "Intermediate (Balanced)" },
-  { value: "strict", label: "Advanced (Strict)" },
+
+const RANDOM_TOPICS = [
+  "Introduce yourself in one minute",
+  "Why I chose my field of study",
+  "A skill everyone should learn",
+  "Explain a technical idea to a beginner",
+  "A problem on campus and how to fix it",
+  "The best advice I ever received",
+  "Should social media have age limits?",
+  "How AI will change my field",
+  "A project I am proud of",
+  "Remote work or office work?",
 ];
 
 export default function SpeakingSetup() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [topic, setTopic] = useState("");
+  // "Practice this topic again" on a result page sends the topic here
+  const [topic, setTopic] = useState(location.state?.topic || "");
   const [duration, setDuration] = useState(1);
-  const [feedbackLevel, setFeedbackLevel] = useState("balanced");
   // Recording only works in browsers with MediaRecorder, on https or localhost.
   const micReady =
     typeof window !== "undefined" &&
@@ -25,9 +34,14 @@ export default function SpeakingSetup() {
 
   const handleChipClick = (chip) => setTopic(chip);
 
+  const handleSurprise = () => {
+    const others = RANDOM_TOPICS.filter((t) => t !== topic);
+    setTopic(others[Math.floor(Math.random() * others.length)]);
+  };
+
   const handleStartSession = () => {
     navigate("/speaking/session", {
-      state: { topic: topic.trim(), duration, feedbackLevel },
+      state: { topic: topic.trim(), duration },
     });
   };
 
@@ -38,7 +52,7 @@ export default function SpeakingSetup() {
           Practice Setup
         </h1>
         <p className="mt-2 text-sm md:text-base text-[#64748B]">
-          Configure your environment for focused delivery.
+          Choose a topic and how long you want to speak.
         </p>
       </div>
 
@@ -73,47 +87,36 @@ export default function SpeakingSetup() {
                 {chip}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={handleSurprise}
+              className="flex items-center gap-1.5 rounded-full border border-[#E2E8F0] bg-white/60 px-3 py-1 text-xs font-medium text-[#64748B] transition hover:bg-[#F1F5F9]"
+            >
+              <Shuffle size={12} />
+              Surprise me
+            </button>
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div>
-            <label className="block text-sm font-medium text-[#334155] mb-2">
-              Target Duration
-            </label>
-            <div className="flex gap-2">
-              {DURATIONS.map((min) => (
-                <button
-                  key={min}
-                  type="button"
-                  onClick={() => setDuration(min)}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-                    duration === min
-                      ? "bg-[#334155] text-white shadow-sm"
-                      : "bg-white/70 text-[#64748B] border border-[#E2E8F0] hover:bg-[#F1F5F9]"
-                  }`}
-                >
-                  {min} min
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#334155] mb-2">
-              AI Feedback Level
-            </label>
-            <select
-              value={feedbackLevel}
-              onChange={(e) => setFeedbackLevel(e.target.value)}
-              className="w-full rounded-lg border border-[#E2E8F0] bg-white/80 py-2.5 px-3 text-sm text-[#334155] outline-none transition focus:border-[#94A3B8] focus:ring-2 focus:ring-[#CBD5E1]"
-            >
-              {FEEDBACK_LEVELS.map((level) => (
-                <option key={level.value} value={level.value}>
-                  {level.label}
-                </option>
-              ))}
-            </select>
+        <div className="mb-6">
+          <label className="mb-2 block text-sm font-medium text-[#334155]">
+            Target Duration
+          </label>
+          <div className="flex gap-2">
+            {DURATIONS.map((min) => (
+              <button
+                key={min}
+                type="button"
+                onClick={() => setDuration(min)}
+                className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                  duration === min
+                    ? "bg-[#334155] text-white shadow-sm"
+                    : "border border-[#E2E8F0] bg-white/70 text-[#64748B] hover:bg-[#F1F5F9]"
+                }`}
+              >
+                {min} min
+              </button>
+            ))}
           </div>
         </div>
 

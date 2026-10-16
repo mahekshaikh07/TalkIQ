@@ -5,11 +5,14 @@ import { getPasswordStrength } from "../../utils/validators";
 export function Field({ label, icon: Icon, error, type = "text", className = "", ...props }) {
   const [visible, setVisible] = useState(false);
   const isPassword = type === "password";
+  const id = props.id || props.name;
   const inputType = isPassword ? (visible ? "text" : "password") : type;
 
   return (
     <div className={className}>
-      <label className="mb-1.5 block text-sm font-semibold text-text">{label}</label>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold text-text">
+        {label}
+      </label>
       <div className="relative">
         {Icon && (
           <Icon
@@ -18,6 +21,7 @@ export function Field({ label, icon: Icon, error, type = "text", className = "",
           />
         )}
         <input
+          id={id}
           type={inputType}
           className={`w-full rounded-xl border bg-white/70 py-2.5 text-sm text-text outline-none transition-all placeholder:text-text/35 focus:border-primary focus:ring-4 focus:ring-primary/15 ${
             Icon ? "pl-10" : "pl-3.5"
@@ -58,18 +62,5 @@ export function PasswordStrengthMeter({ password }) {
         />
       </div>
     </div>
-  );
-}
-
-export function SocialButton({ icon, label, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/70 py-2.5 text-sm font-medium text-text transition-all hover:bg-white hover:shadow-sm"
-    >
-      {icon}
-      {label}
-    </button>
   );
 }

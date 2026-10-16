@@ -36,7 +36,7 @@ export function ResultNotFound({ text, onBack }) {
         className="mt-2 flex items-center gap-2 rounded-xl bg-[#334155] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1E293B]"
       >
         <ArrowLeft size={14} />
-        Back to dashboard
+        Go back
       </button>
     </div>
   );

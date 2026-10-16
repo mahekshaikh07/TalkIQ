@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
-import { Field, SocialButton } from "../components/Auth/AuthFormElements";
+import { Field } from "../components/Auth/AuthFormElements";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -11,7 +11,6 @@ export default function Login() {
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -57,28 +56,21 @@ export default function Login() {
           name="email"
           label="Email"
           placeholder="you@example.com"
+          autoComplete="email"
           value={formData.email}
           onChange={handleChange}
         />
 
-        <div className="relative">
-          <Field
-            icon={Lock}
-            type={showPassword ? "text" : "password"}
-            name="password"
-            label="Password"
-            placeholder="••••••••"
-            value={formData.password}
-            onChange={handleChange}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((s) => !s)}
-            className="absolute right-3 top-[38px] text-[#94A3B8] hover:text-[#64748B]"
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
+        <Field
+          icon={Lock}
+          type="password"
+          name="password"
+          label="Password"
+          placeholder="Enter your password"
+          autoComplete="current-password"
+          value={formData.password}
+          onChange={handleChange}
+        />
 
         {error && (
           <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
@@ -94,17 +86,6 @@ export default function Login() {
           {loading ? "Logging in..." : "Log In"}
         </button>
       </form>
-
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-[#E2E8F0]" />
-        <span className="text-xs text-[#94A3B8]">or continue with</span>
-        <div className="h-px flex-1 bg-[#E2E8F0]" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <SocialButton provider="google" />
-        <SocialButton provider="github" />
-      </div>
 
       <p className="mt-8 text-center text-sm text-[#64748B]">
         Don't have an account?{" "}
