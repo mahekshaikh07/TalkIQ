@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Camera, Edit3, Mic, TrendingUp, Flame, Award, LogOut, PlayCircle } from 'lucide-react';
+import { Mic, TrendingUp, Flame, Award, LogOut, PlayCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import Avatar from '../components/common/Avatar';
 import { useNavigate } from 'react-router-dom';
 import { getSpeechSessions, getDebateSessions } from '../api/sessionsApi';
 import {
@@ -83,9 +84,6 @@ export default function Profile() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(() => buildStats([], []));
   const [statsError, setStatsError] = useState('');
-  const [avatarUrl] = useState(
-    user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (user?.name || 'TalkIQ')
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -112,19 +110,12 @@ export default function Profile() {
       {/* Profile Header Card */}
       <div className={`${CARD} sm:flex-row sm:items-center sm:justify-between gap-5`}>
         <div className="flex items-center gap-4 sm:gap-5">
-          <div className="relative shrink-0">
-            <img
-              src={avatarUrl}
-              alt={user?.name || 'User avatar'}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white shadow-sm"
-            />
-            <button
-              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center shadow-sm hover:bg-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-              aria-label="Change avatar"
-            >
-              <Camera size={14} />
-            </button>
-          </div>
+          <Avatar
+            name={user?.name}
+            size="w-16 h-16 sm:w-20 sm:h-20"
+            textSize="text-xl sm:text-2xl"
+            className="shrink-0"
+          />
 
           <div className="min-w-0">
             <h2 className="font-display font-semibold text-slate-700 text-lg sm:text-xl truncate">
@@ -133,11 +124,6 @@ export default function Profile() {
             <p className="text-sm text-slate-400 mt-0.5 truncate">{user?.email || ''}</p>
           </div>
         </div>
-
-        <button className={`${BTN_SECONDARY} w-full sm:w-auto`}>
-          <Edit3 size={14} />
-          Edit Profile
-        </button>
       </div>
 
       {statsError && (
