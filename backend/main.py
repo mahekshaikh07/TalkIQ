@@ -1,5 +1,22 @@
+# ---- Make the server start correctly from ANY folder ----
+# 1) put the project root and the backend folder on Python's search path
+#    (so both `from db import db` and `from backend.ai_service...` work)
+# 2) load backend/.env by its real location, not by the folder you started in
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent   # .../backend
+ROOT_DIR = BASE_DIR.parent                   # project root
+for _p in (str(ROOT_DIR), str(BASE_DIR)):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+load_dotenv(BASE_DIR / ".env")
+# ----------------------------------------------------------
+
 import os
 import sys
+import asyncio
 import random
 import shutil
 import uuid
@@ -39,11 +56,13 @@ app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+# Vite runs on 5173. FRONTEND_URL in .env can add one more origin (e.g. the deployed site).
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+ALLOWED_ORIGINS = sorted({FRONTEND_URL, "http://localhost:5173", "http://127.0.0.1:5173"})
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,7 +74,8 @@ MAX_AUDIO_SIZE_MB = 10
 ALLOWED_AUDIO_TYPES = {
     "audio/wav", "audio/x-wav", "audio/wave",
     "audio/mpeg", "audio/mp3",
-    "audio/webm", "audio/ogg", "video/webm"
+    "audio/webm", "audio/ogg", "video/webm",
+    "audio/mp4", "audio/x-m4a", "audio/aac"   # Safari records audio/mp4
 }
 
 
@@ -94,12 +114,17 @@ async def login(request: Request, user: UserLogin):
         raise HTTPException(status_code=400, detail="Invalid email or password")
 
     token = create_access_token({"sub": user.email})
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {"name": db_user.get("name"), "email": db_user["email"]}
+    }
 
 
 @app.get("/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    return {"you_are": current_user["sub"]}
+    db_user = await db["users"].find_one({"email": current_user["sub"]})
+    return {"you_are": current_user["sub"], "name": db_user.get("name") if db_user else None}
 
 
 # ---------- SPEAKING ----------
@@ -144,7 +169,8 @@ async def speak_submit(
         with open(temp_path, "wb") as f:
             shutil.copyfileobj(audio.file, f)
 
-        whisper_result = transcribe_audio(str(temp_path))
+        # run blocking AI work in a thread so the server can still answer other requests
+        whisper_result = await asyncio.to_thread(transcribe_audio, str(temp_path))
         transcript = whisper_result["transcript"]
         duration = whisper_result["duration"]
         segments = whisper_result["segments"]
@@ -165,7 +191,8 @@ async def speak_submit(
         # send only the summary to the LLM, not the long pause list
         pause_summary = {k: v for k, v in pause_data.items() if k != "pauses"}
 
-        evaluation = get_valid_json(
+        evaluation = await asyncio.to_thread(
+            get_valid_json,
             evaluate_speech, transcript, topic, wpm, filler_data, pause_summary, silence_ratio, vocab_diversity
         )
     finally:
@@ -283,7 +310,8 @@ async def debate_turn(request: Request, body: DebateTurnRequest, current_user: d
 
     history_for_llm = [{"role": t["role"], "content": t["content"]} for t in session["conversation"]]
 
-    ai_reply = get_debate_response(
+    ai_reply = await asyncio.to_thread(
+        get_debate_response,
         history=history_for_llm,
         user_message=body.message,
         topic=session["topic"],
@@ -326,7 +354,7 @@ async def debate_end(request: DebateEndRequest, current_user: dict = Depends(get
     if not full_conversation:
         raise HTTPException(status_code=400, detail="Cannot evaluate a debate with no messages")
 
-    rebuttal_data = calculate_rebuttal_relevance(full_conversation)
+    rebuttal_data = await asyncio.to_thread(calculate_rebuttal_relevance, full_conversation)
     evidence_data = count_evidence_keywords(full_conversation)
     vocab_diversity = calculate_debate_vocabulary_diversity(full_conversation)
     length_trend = calculate_response_length_trend(full_conversation)
@@ -346,7 +374,8 @@ async def debate_end(request: DebateEndRequest, current_user: dict = Depends(get
             "relevance": relevance_list[idx - 1] if 1 <= idx <= len(relevance_list) else None
         })
 
-    evaluation = get_valid_json(
+    evaluation = await asyncio.to_thread(
+        get_valid_json,
         evaluate_debate,
         full_conversation, session["topic"], session["stance"],
         rebuttal_data, evidence_data, vocab_diversity, length_trend

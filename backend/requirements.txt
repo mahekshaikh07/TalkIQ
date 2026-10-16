@@ -62,7 +62,7 @@ motor
 pydantic
 python-dotenv
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt
 python-multipart
 slowapi
 email-validator

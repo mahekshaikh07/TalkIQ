@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Users, ArrowRight } from "lucide-react";
+import { Pencil, Users, ArrowRight, Loader2 } from "lucide-react";
+import { startDebate } from "../../services/debateService";
+import { useToast } from "../../hooks/useToast";
 
 const TOPIC_SUGGESTIONS = [
   "Should remote work be the default?",
@@ -8,26 +10,42 @@ const TOPIC_SUGGESTIONS = [
   "Should college be free?",
 ];
 
+// The backend only accepts "support" or "oppose" for the stance.
 const STANCES = [
-  { value: "for", label: "For" },
-  { value: "against", label: "Against" },
+  { value: "support", label: "For" },
+  { value: "oppose", label: "Against" },
 ];
 
-const DIFFICULTIES = [
-  { value: "easy", label: "Easy" },
-  { value: "medium", label: "Medium" },
-  { value: "hard", label: "Hard" },
+// The backend accepts 2 to 15 minutes.
+const DURATIONS = [
+  { value: 5, label: "5 minutes" },
+  { value: 10, label: "10 minutes" },
+  { value: 15, label: "15 minutes" },
 ];
 
 export default function DebateSetup() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [topic, setTopic] = useState("");
-  const [stance, setStance] = useState("for");
-  const [difficulty, setDifficulty] = useState("medium");
+  const [stance, setStance] = useState("support");
+  const [durationMinutes, setDurationMinutes] = useState(5);
+  const [starting, setStarting] = useState(false);
 
-  const handleStartDebate = () => {
-    navigate("/debate/session", { state: { topic, stance, difficulty } });
+  const handleStartDebate = async () => {
+    if (!topic.trim() || starting) return;
+    setStarting(true);
+    try {
+      const session = await startDebate({
+        topic: topic.trim(),
+        stance,
+        durationMinutes,
+      });
+      navigate(`/debate/session/${session.session_id}`);
+    } catch (err) {
+      showToast(err.message, "error");
+      setStarting(false);
+    }
   };
 
   return (
@@ -78,7 +96,7 @@ export default function DebateSetup() {
           </div>
         </div>
 
-        {/* Stance + Difficulty */}
+        {/* Stance + Length */}
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-[#334155] mb-2">
@@ -104,14 +122,14 @@ export default function DebateSetup() {
 
           <div>
             <label className="block text-sm font-medium text-[#334155] mb-2">
-              AI Difficulty
+              Debate Length
             </label>
             <select
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value)}
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(Number(e.target.value))}
               className="w-full rounded-lg border border-[#E2E8F0] bg-white/80 py-2.5 px-3 text-sm text-[#334155] outline-none transition focus:border-[#94A3B8] focus:ring-2 focus:ring-[#CBD5E1]"
             >
-              {DIFFICULTIES.map((d) => (
+              {DURATIONS.map((d) => (
                 <option key={d.value} value={d.value}>
                   {d.label}
                 </option>
@@ -134,11 +152,20 @@ export default function DebateSetup() {
         <button
           type="button"
           onClick={handleStartDebate}
-          disabled={!topic.trim()}
+          disabled={!topic.trim() || starting}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#334155] py-3 text-sm font-semibold text-white transition hover:bg-[#1E293B] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Start Debate
-          <ArrowRight size={16} />
+          {starting ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Starting...
+            </>
+          ) : (
+            <>
+              Start Debate
+              <ArrowRight size={16} />
+            </>
+          )}
         </button>
       </div>
     </div>

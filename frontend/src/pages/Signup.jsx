@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Lock } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
-import { Field, SocialButton } from "../components/auth/AuthFormElements";
+import { Field, SocialButton } from "../components/Auth/AuthFormElements";
 
 export default function Signup() {
   const navigate = useNavigate();

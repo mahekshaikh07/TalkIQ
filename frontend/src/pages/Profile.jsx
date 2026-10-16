@@ -1,122 +1,189 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, Edit3, Mic, TrendingUp, Flame, Award, LogOut, PlayCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { getSpeechSessions, getDebateSessions } from '../api/sessionsApi';
+import {
+  tagSessions,
+  onlyCompleted,
+  averageOverall,
+  averageScores,
+  calculateStreak,
+  localDateKey,
+  parseDate,
+  simpleName,
+  fmt1,
+  SPEECH_SCORE_KEYS,
+  DEBATE_SCORE_KEYS,
+} from '../utils/dashboardHelpers';
 
-// Dummy stats — replace with real data once backend is wired in
-const profileStats = {
-  totalSessions: 142,
-  sessionsProgress: 71, // % for progress bar
-  avgClarityScore: 88,
-  clarityChange: '+3% this month',
-  currentStreak: 12,
-  streakDots: [true, true, true, true, true, false, false], // filled vs empty
-  topSkill: {
-    name: 'Pacing & Pauses',
-    description: 'Consistently hit target cadence',
-  },
-};
+// ---- Shared styles (change here, it updates everywhere) ----
+// ---- Spacing scale: 4 = tight, 6 = card padding / section gaps ----
+const CARD =
+  'bg-white/70 backdrop-blur-md border border-white/45 rounded-2xl shadow-sm ' +
+  'p-5 sm:p-6 flex flex-col';
+const CARD_HEAD = 'flex items-center justify-between mb-4';
+const LABEL = 'text-xs font-medium text-slate-400';
+const ICON = 'text-slate-400';
+const VALUE = 'text-2xl font-display font-semibold text-slate-700 leading-8';
+const UNIT = 'text-sm text-slate-400 font-normal';
+const SUBTEXT = 'mt-auto pt-4 text-xs text-slate-400';
 
-const badges = ['Premium Member', 'Debate Coach'];
+const BTN =
+  'flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ' +
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400';
+const BTN_PRIMARY = BTN + ' bg-slate-700 text-white hover:bg-slate-600';
+const BTN_SECONDARY = BTN + ' border border-slate-200 bg-white/60 text-slate-600 hover:bg-white';
+
+// Builds the profile numbers from the real sessions.
+function buildStats(speech, debates) {
+  const all = tagSessions(speech, debates);
+
+  // Last 7 days, oldest first: filled if there was a session that day
+  const days = {};
+  all.forEach((x) => {
+    const d = parseDate(x.created_at);
+    if (d) days[localDateKey(d)] = true;
+  });
+  const streakDots = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    streakDots.push(!!days[localDateKey(d)]);
+  }
+
+  // Top skill = the score with the highest average (speech + debate scores together)
+  let top = null;
+  const consider = (list, keys) => {
+    if (!list.length) return;
+    const avg = averageScores(list, keys);
+    keys.forEach((k) => {
+      if (!top || avg[k] > top.value) top = { key: k, value: avg[k] };
+    });
+  };
+  consider(speech, SPEECH_SCORE_KEYS);
+  consider(debates, DEBATE_SCORE_KEYS);
+
+  return {
+    totalSessions: all.length,
+    speechCount: speech.length,
+    debateCount: debates.length,
+    avgScore: averageOverall(all),
+    currentStreak: calculateStreak(all),
+    streakDots,
+    topSkill: top
+      ? { name: simpleName(top.key), description: 'Average ' + fmt1(top.value) + '/10' }
+      : { name: 'Not yet', description: 'Finish a session to see your strongest skill' },
+  };
+}
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [stats, setStats] = useState(() => buildStats([], []));
+  const [statsError, setStatsError] = useState('');
   const [avatarUrl] = useState(
-    user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (user?.name || 'Eleanor')
+    user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (user?.name || 'TalkIQ')
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getSpeechSessions(), getDebateSessions()])
+      .then((results) => {
+        if (cancelled) return;
+        setStats(buildStats(results[0] || [], onlyCompleted(results[1] || [])));
+      })
+      .catch((err) => {
+        if (!cancelled) setStatsError(err && err.message ? err.message : 'Could not load your stats.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  return (
-    <div className="space-y-6">
+    return (
+    <div className="space-y-6 sm:space-y-8">
       {/* Profile Header Card */}
-      <div className="bg-white/70 backdrop-blur-md border border-white/45 rounded-2xl p-6 shadow-sm flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+      <div className={`${CARD} sm:flex-row sm:items-center sm:justify-between gap-5`}>
+        <div className="flex items-center gap-4 sm:gap-5">
+          <div className="relative shrink-0">
             <img
               src={avatarUrl}
               alt={user?.name || 'User avatar'}
-              className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white shadow-sm"
             />
             <button
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center shadow-sm hover:bg-slate-600 transition-colors"
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center shadow-sm hover:bg-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
               aria-label="Change avatar"
             >
-              <Camera size={12} />
+              <Camera size={14} />
             </button>
           </div>
 
-          <div>
-            <h2 className="font-display font-semibold text-slate-700 text-lg">
-              {user?.name || 'Eleanor Vance'}
+          <div className="min-w-0">
+            <h2 className="font-display font-semibold text-slate-700 text-lg sm:text-xl truncate">
+              {user?.name || 'Your account'}
             </h2>
-            <p className="text-sm text-slate-400">{user?.email || 'eleanor.vance@example.com'}</p>
-            <div className="flex gap-2 mt-2">
-              {badges.map((badge) => (
-                <span
-                  key={badge}
-                  className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-200/70 text-slate-600"
-                >
-                  {badge}
-                </span>
-              ))}
-            </div>
+            <p className="text-sm text-slate-400 mt-0.5 truncate">{user?.email || ''}</p>
           </div>
         </div>
 
-        <button className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 bg-white/60 text-slate-600 hover:bg-white transition-colors">
+        <button className={`${BTN_SECONDARY} w-full sm:w-auto`}>
           <Edit3 size={14} />
           Edit Profile
         </button>
       </div>
 
+      {statsError && (
+        <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
+          {statsError}
+        </p>
+      )}
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Total Sessions */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/45 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-400">Total Sessions</span>
-            <Mic size={16} className="text-slate-400" />
+        <div className={CARD}>
+          <div className={CARD_HEAD}>
+            <span className={LABEL}>Total Sessions</span>
+            <Mic size={16} className={ICON} />
           </div>
-          <p className="text-2xl font-display font-semibold text-slate-700">
-            {profileStats.totalSessions}
+          <p className={VALUE}>{stats.totalSessions}</p>
+          <p className={SUBTEXT}>
+            {stats.speechCount} speaking · {stats.debateCount} debate
           </p>
-          <div className="mt-3 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-slate-500 rounded-full"
-              style={{ width: `${profileStats.sessionsProgress}%` }}
-            />
-          </div>
         </div>
 
-        {/* Avg Clarity Score */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/45 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-400">Avg. Clarity Score</span>
-            <TrendingUp size={16} className="text-slate-400" />
+        {/* Average Score */}
+        <div className={CARD}>
+          <div className={CARD_HEAD}>
+            <span className={LABEL}>Average Score</span>
+            <TrendingUp size={16} className={ICON} />
           </div>
-          <p className="text-2xl font-display font-semibold text-slate-700">
-            {profileStats.avgClarityScore}
-            <span className="text-sm text-slate-400 font-normal">/100</span>
+          <p className={VALUE}>
+            {fmt1(stats.avgScore, '-')}
+            <span className={UNIT}>/10</span>
           </p>
-          <p className="mt-3 text-xs text-emerald-600 font-medium">{profileStats.clarityChange}</p>
+          <p className={SUBTEXT}>Across speaking and debate</p>
         </div>
 
         {/* Current Streak */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/45 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-400">Current Streak</span>
-            <Flame size={16} className="text-orange-400" />
+        <div className={CARD}>
+          <div className={CARD_HEAD}>
+            <span className={LABEL}>Current Streak</span>
+            <Flame size={16} className={ICON} />
           </div>
-          <p className="text-2xl font-display font-semibold text-slate-700">
-            {profileStats.currentStreak} <span className="text-sm text-slate-400 font-normal">Days</span>
+          <p className={VALUE}>
+            {stats.currentStreak} <span className={UNIT}>Days</span>
           </p>
-          <div className="mt-3 flex gap-1">
-            {profileStats.streakDots.map((filled, i) => (
+          <div className="mt-auto pt-4 flex gap-1">
+            {stats.streakDots.map((filled, i) => (
               <span
                 key={i}
                 className={`h-1.5 flex-1 rounded-full ${filled ? 'bg-slate-500' : 'bg-slate-200'}`}
@@ -126,31 +193,25 @@ export default function Profile() {
         </div>
 
         {/* Top Skill */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/45 rounded-2xl p-5 shadow-sm border-l-4 border-l-slate-400">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-400">Top Skill</span>
-            <Award size={16} className="text-slate-400" />
+        <div className={CARD}>
+          <div className={CARD_HEAD}>
+            <span className={LABEL}>Top Skill</span>
+            <Award size={16} className={ICON} />
           </div>
-          <p className="text-lg font-display font-semibold text-slate-700">
-            {profileStats.topSkill.name}
+          <p className="text-lg font-display font-semibold text-slate-700 leading-8">
+            {stats.topSkill.name}
           </p>
-          <p className="mt-2 text-xs text-slate-400">{profileStats.topSkill.description}</p>
+          <p className={SUBTEXT}>{stats.topSkill.description}</p>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-3 pt-2">
-        <button
-          onClick={() => navigate('/speaking/setup')}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-700 text-white text-sm font-medium hover:bg-slate-600 transition-colors"
-        >
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <button onClick={() => navigate('/speaking/setup')} className={BTN_PRIMARY}>
           <PlayCircle size={16} />
           Start Practice
         </button>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-200 bg-white/60 text-slate-600 text-sm font-medium hover:bg-white transition-colors"
-        >
+        <button onClick={handleLogout} className={BTN_SECONDARY}>
           <LogOut size={16} />
           Logout
         </button>

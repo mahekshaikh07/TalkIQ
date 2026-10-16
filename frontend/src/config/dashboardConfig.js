@@ -1,6 +1,5 @@
-export const USE_MOCK_DATA = true;
-
-export const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+// Real backend by default. Put VITE_USE_MOCK=true in frontend/.env to use the fake data in src/data/mockSessions.js.
+export const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK === "true";
 
 export const COLORS = {
   primary: "#334155",

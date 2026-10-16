@@ -1,21 +1,31 @@
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+import bcrypt
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
-from passlib.context import CryptContext
 
 load_dotenv()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _to_bytes(password: str) -> bytes:
+    # bcrypt only uses the first 72 bytes of a password
+    return password.encode("utf-8")[:72]
+
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(_to_bytes(password), bcrypt.gensalt()).decode("utf-8")
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(_to_bytes(plain_password), hashed_password.encode("utf-8"))
+    except ValueError:
+        return False
+
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
@@ -24,11 +34,13 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
+
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def decode_access_token(token: str):
     try:
@@ -36,7 +48,9 @@ def decode_access_token(token: str):
     except JWTError:
         return None
 
+
 security = HTTPBearer()
+
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     payload = decode_access_token(credentials.credentials)

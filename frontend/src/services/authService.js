@@ -1,10 +1,9 @@
-import { mockDelay } from "./api";
+import api, { TOKEN_KEY, USER_KEY, toApiError } from "./api";
 
-const TOKEN_KEY = "talkiq_token";
-const USER_KEY = "talkiq_user";
-
+// A user only counts as logged in if both the token and the user are saved.
 export function getStoredUser() {
   try {
+    if (!localStorage.getItem(TOKEN_KEY)) return null;
     const raw = localStorage.getItem(USER_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
@@ -12,46 +11,35 @@ export function getStoredUser() {
   }
 }
 
-function persistSession(user) {
-  localStorage.setItem(TOKEN_KEY, `mock-jwt-${Date.now()}`);
+function saveSession(token, user) {
+  localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
-// TODO: swap the mock bodies below for real `api.post(...)` calls once
-// the backend auth endpoints are ready. Signatures stay the same.
-
-export async function signupUser({ name, email, password }) {
-  await mockDelay();
-
-  if (!name || !email || !password) {
-    throw new Error("All fields are required.");
+export async function loginUser({ email, password }, fallbackName) {
+  try {
+    const cleanEmail = email.trim();
+    const { data } = await api.post("/login", { email: cleanEmail, password });
+    // The backend sends { access_token, token_type, user: { name, email } }.
+    const user = {
+      name: data.user?.name || fallbackName || cleanEmail.split("@")[0],
+      email: data.user?.email || cleanEmail,
+    };
+    saveSession(data.access_token, user);
+    return user;
+  } catch (err) {
+    throw toApiError(err, "Invalid email or password.");
   }
-
-  const user = {
-    id: crypto.randomUUID(),
-    name,
-    email,
-  };
-
-  persistSession(user);
-  return user;
 }
 
-export async function loginUser({ email, password }) {
-  await mockDelay();
-
-  if (!email || !password) {
-    throw new Error("Email and password are required.");
+export async function signupUser({ name, email, password }) {
+  try {
+    await api.post("/signup", { name: name.trim(), email: email.trim(), password });
+  } catch (err) {
+    throw toApiError(err, "Could not create your account.");
   }
-
-  const user = {
-    id: crypto.randomUUID(),
-    name: email.split("@")[0],
-    email,
-  };
-
-  persistSession(user);
-  return user;
+  // /signup does not return a token, so log in right after it.
+  return loginUser({ email, password }, name.trim());
 }
 
 export function logoutUser() {

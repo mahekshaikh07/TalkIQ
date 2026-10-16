@@ -10,10 +10,9 @@ import Signup from "../pages/Signup";
 import Dashboard from "../pages/Dashboard";
 import SpeakingSetup from "../pages/speaking/SpeakingSetup";
 import SpeakingSession from "../pages/speaking/SpeakingSession";
-import SpeakingReport from "../pages/speaking/SpeakingReport";
 import DebateSetup from "../pages/debate/DebateSetup";
 import DebateSession from "../pages/debate/DebateSession";
-import DebateReport from "../pages/debate/DebateReport";
+import DebateResult from "../pages/debate/DebateResult";
 import History from "../pages/History";
 import Profile from "../pages/Profile";
 import SpeechResult from "../pages/SpeechResult";
@@ -34,12 +33,12 @@ export default function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/speech-result/:id" element={<SpeechResult />} />
+          <Route path="/debate-result/:id" element={<DebateResult />} />
           <Route path="/speaking/setup" element={<SpeakingSetup />} />
           <Route path="/speaking/session" element={<SpeakingSession />} />
-          <Route path="/speaking/report" element={<SpeakingReport />} />
           <Route path="/debate/setup" element={<DebateSetup />} />
-          <Route path="/debate/session" element={<DebateSession />} />
-          <Route path="/debate/report" element={<DebateReport />} />
+          <Route path="/debate/session/:sessionId" element={<DebateSession />} />
+          <Route path="/debate/session" element={<Navigate to="/debate/setup" replace />} />
           <Route path="/history" element={<History />} />
           <Route path="/profile" element={<Profile />} />
         </Route>

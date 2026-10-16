@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
-import { Field, SocialButton } from "../components/auth/AuthFormElements";
+import { Field, SocialButton } from "../components/Auth/AuthFormElements";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -78,15 +78,6 @@ export default function Login() {
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
-        </div>
-
-        <div className="flex justify-end">
-          <Link
-            to="/forgot-password"
-            className="text-xs font-medium text-[#64748B] hover:text-[#334155]"
-          >
-            Forgot password?
-          </Link>
         </div>
 
         {error && (
