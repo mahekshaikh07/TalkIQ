@@ -76,8 +76,13 @@ export default function DebateResult() {
     fetchAll();
   }, []);
 
+  // Go back to the page the user came from (history or dashboard)
   function goBack() {
-    navigate("/dashboard");
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate("/dashboard");
+    }
   }
 
   const session = list.find(function (s) { return s._id === id; });
@@ -170,7 +175,7 @@ export default function DebateResult() {
           <MetricCard
             icon={Quote}
             label="Evidence words"
-            value={isNum(ev.total_evidence_markers) ? String(ev.total_evidence_markers) : "Not available"}
+            value={isNum(ev.total_evidence_markers) ? String(ev.total_evidence_markers) : "-"}
             note={keywords.length ? "Most used: " + keywords.join(", ") : undefined}
             change={compareMetric(ev.total_evidence_markers, pev.total_evidence_markers, false)}
           />
@@ -287,7 +292,7 @@ export default function DebateResult() {
         className="mb-6 flex items-center gap-2 text-sm font-medium text-[#64748B] transition hover:text-[#334155]"
       >
         <ArrowLeft size={16} />
-        Back to dashboard
+        Back
       </button>
       {body}
     </div>

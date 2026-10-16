@@ -20,7 +20,7 @@ function ChangeArrow({ change }) {
 
 export default function MetricCard({ icon, label, value, note, change }) {
   const Icon = icon;
-  const missing = value === "Not available";
+  const missing = value === "Not available" || value === "-";
 
   return (
     <div className="glass rounded-2xl border border-white/45 bg-white/70 p-5 shadow-sm backdrop-blur-xl">
